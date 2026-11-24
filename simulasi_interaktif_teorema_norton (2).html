@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Analisis Teorema Norton — Laboratorium Virtual Teknik Elektro</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#141c2e',
+                            900: '#0f172a',
+                            950: '#070b14',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Scrollbar halus & modern */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Styling Slider Presisi */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 5px;
+            border-radius: 999px;
+            background: #1e293b;
+            border: 1px solid #334155;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            margin-top: -6px;
+            background-color: #06b6d4;
+            height: 15px;
+            width: 15px;
+            border-radius: 50%;
+            border: 2px solid #0f172a;
+            box-shadow: 0 0 8px rgba(6, 182, 212, 0.65);
+            transition: transform 0.12s ease, background-color 0.12s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.18);
+            background-color: #22d3ee;
+        }
+
+        /* Hilangkan panah spinner default pada input number agar bersih */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col lg:h-screen lg:overflow-hidden selection:bg-cyan-500 selection:text-slate-950">
+
+    <!-- HEADER RINGKAS & ELEGAN -->
+    <header class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shrink-0 z-30">
+        <div class="max-w-[1800px] mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+            
+            <!-- Identitas Aplikasi -->
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 shrink-0">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-sm sm:text-base font-bold tracking-tight text-white flex items-center gap-2">
+                        Simulasi Analisis Teorema Norton
+                        <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-semibold hidden sm:inline-block">Lab Elektro</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400 hidden md:block">Rangkaian Ekivalen, Visualisasi Aliran Muatan & Kondisi Transfer Daya Maksimum</p>
+                </div>
+            </div>
+
+            <!-- 3 Tab Pemilih Topologi Rangkaian di Header -->
+            <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800" id="topology-tabs">
+                <button data-topo="0" class="topo-tab active px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition">
+                    1 Sumber Tegangan
+                </button>
+                <button data-topo="1" class="topo-tab px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 border border-transparent transition">
+                    2 Sumber Tegangan
+                </button>
+                <button data-topo="2" class="topo-tab px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 border border-transparent transition">
+                    Campuran V &amp; I
+                </button>
+            </div>
+
+            <!-- Kontrol Animasi Arus & Preset Daya Maksimum -->
+            <div class="flex flex-wrap items-center gap-2">
+                <button id="btn-max-power" class="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-semibold transition flex items-center gap-1.5" title="Atur R_L = R_N untuk transfer daya maksimum">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                    <span>Daya Maksimum (R<sub>L</sub> = R<sub>N</sub>)</span>
+                </button>
+
+                <button id="btn-current-dir" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 flex items-center gap-1.5 transition" title="Ganti konvensi arah aliran partikel">
+                    <span id="dot-dir-indicator" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span id="label-current-dir">Konvensional (+ → -)</span>
+                </button>
+
+                <button id="btn-toggle-anim" class="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition shadow-md shadow-cyan-500/20">
+                    <svg id="icon-pause" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                    <svg id="icon-play" class="w-3.5 h-3.5 hidden" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+                    <span id="text-anim-state">Pause</span>
+                </button>
+
+                <button id="btn-theory-modal" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-cyan-400 transition" title="Buka Panduan Teori Norton">
+                    Teori
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- STRUKTUR GRID 2-KOLOM UTAMA (Sidebar Kontrol Kiri ~340px + Area Kerja Utama Kanan) -->
+    <div class="flex-1 flex flex-col lg:flex-row max-w-[1800px] w-full mx-auto overflow-hidden">
+        
+        <!-- SIDEBAR KONTROL KIRI (Lebar Tetap 340px di Desktop, Scrollable) -->
+        <aside class="w-full lg:w-[340px] shrink-0 bg-slate-900/70 border-b lg:border-b-0 lg:border-r border-slate-800 p-3.5 lg:overflow-y-auto flex flex-col gap-3.5">
+            
+            <!-- Header Sidebar & Tombol Reset -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Parameter Rangkaian</h2>
+                    <p class="text-[11px] text-slate-400">Geser slider atau ketik angka presisi</p>
+                </div>
+                <button id="btn-reset-params" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-medium text-slate-300 transition">
+                    Reset Default
+                </button>
+            </div>
+
+            <!-- KARTU 1: SUMBER DAYA -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3 shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        Sumber Daya Independen
+                    </span>
+                    <span id="topo-indicator" class="text-[10px] font-mono text-slate-400">Topologi 1</span>
+                </div>
+
+                <!-- Sumber V1 / Vs -->
+                <div id="ctrl-v1">
+                    <div class="flex justify-between items-center mb-1">
+                        <label id="label-v1" class="text-xs font-medium text-slate-200">Tegangan Sumber (V<sub>s</sub>)</label>
+                        <div class="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-md px-1.5 py-0.5 focus-within:border-amber-400">
+                            <input type="number" id="num-v1" min="0" max="60" step="1" value="24" class="w-11 bg-transparent text-right font-mono text-xs font-semibold text-amber-300 focus:outline-none">
+                            <span class="text-[11px] font-mono text-slate-400">V</span>
+                        </div>
+                    </div>
+                    <input type="range" id="range-v1" min="0" max="60" step="1" value="24" class="w-full">
+                </div>
+
+                <!-- Sumber V2 (Topologi 2) -->
+                <div id="ctrl-v2" class="hidden pt-1 border-t border-slate-800/60">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-medium text-slate-200">Tegangan Sumber 2 (V<sub>2</sub>)</label>
+                        <div class="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-md px-1.5 py-0.5 focus-within:border-amber-400">
+                            <input type="number" id="num-v2" min="-40" max="40" step="1" value="12" class="w-11 bg-transparent text-right font-mono text-xs font-semibold text-amber-300 focus:outline-none">
+                            <span class="text-[11px] font-mono text-slate-400">V</span>
+                        </div>
+                    </div>
+                    <input type="range" id="range-v2" min="-40" max="40" step="1" value="12" class="w-full">
+                </div>
+
+                <!-- Sumber Arus Is (Topologi 3) -->
+                <div id="ctrl-is" class="hidden pt-1 border-t border-slate-800/60">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-medium text-slate-200">Sumber Arus (I<sub>s</sub>)</label>
+                        <div class="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-md px-1.5 py-0.5 focus-within:border-emerald-400">
+                            <input type="number" id="num-is" min="0" max="10" step="0.5" value="2" class="w-11 bg-transparent text-right font-mono text-xs font-semibold text-emerald-300 focus:outline-none">
+                            <span class="text-[11px] font-mono text-slate-400">A</span>
+                        </div>
+                    </div>
+                    <input type="range" id="range-is" min="0" max="10" step="0.5" value="2" class="w-full">
+                </div>
+            </div>
+
+            <!-- KARTU 2: RESISTOR JARINGAN -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3 shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                        Resistor Jaringan Linear
+                    </span>
+                    <span class="text-[10px] font-mono text-slate-400">R<sub>1</sub>, R<sub>2</sub>, R<sub>3</sub></span>
+                </div>
+
+                <!-- R1 -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-medium text-slate-200">Resistor Seri R<sub>1</sub></label>
+                        <div class="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-md px-1.5 py-0.5 focus-within:border-cyan-400">
+                            <input type="number" id="num-r1" min="1" max="100" step="1" value="6" class="w-11 bg-transparent text-right font-mono text-xs font-semibold text-cyan-300 focus:outline-none">
+                            <span class="text-[11px] font-mono text-slate-400">Ω</span>
+                        </div>
+                    </div>
+                    <input type="range" id="range-r1" min="1" max="100" step="1" value="6" class="w-full">
+                </div>
+
+                <!-- R2 -->
+                <div class="pt-1 border-t border-slate-800/60">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-medium text-slate-200">Resistor Paralel R<sub>2</sub></label>
+                        <div class="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-md px-1.5 py-0.5 focus-within:border-cyan-400">
+                            <input type="number" id="num-r2" min="1" max="100" step="1" value="12" class="w-11 bg-transparent text-right font-mono text-xs font-semibold text-cyan-300 focus:outline-none">
+                            <span class="text-[11px] font-mono text-slate-400">Ω</span>
+                        </div>
+                    </div>
+                    <input type="range" id="range-r2" min="1" max="100" step="1" value="12" class="w-full">
+                </div>
+
+                <!-- R3 -->
+                <div class="pt-1 border-t border-slate-800/60">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-medium text-slate-200">Resistor Keluaran R<sub>3</sub></label>
+                        <div class="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-md px-1.5 py-0.5 focus-within:border-cyan-400">
+                            <input type="number" id="num-r3" min="0" max="100" step="1" value="4" class="w-11 bg-transparent text-right font-mono text-xs font-semibold text-cyan-300 focus:outline-none">
+                            <span class="text-[11px] font-mono text-slate-400">Ω</span>
+                        </div>
+                    </div>
+                    <input type="range" id="range-r3" min="0" max="100" step="1" value="4" class="w-full">
+                </div>
+            </div>
+
+            <!-- KARTU 3: RESISTOR BEBAN RL -->
+            <div class="bg-gradient-to-b from-indigo-950/50 to-slate-900 border border-indigo-500/40 rounded-xl p-3 space-y-2.5 shadow-sm">
+                <div class="flex items-center justify-between border-b border-indigo-500/20 pb-1.5">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+                        Beban Terminal A – B
+                    </span>
+                    <span class="text-[10px] font-mono text-indigo-300">Variabel R<sub>L</sub></span>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-semibold text-white">Resistor Beban (R<sub>L</sub>)</label>
+                        <div class="flex items-center gap-1 bg-slate-950 border border-indigo-500/50 rounded-md px-1.5 py-0.5 focus-within:border-indigo-400">
+                            <input type="number" id="num-rl" min="1" max="100" step="0.5" value="8" class="w-11 bg-transparent text-right font-mono text-xs font-bold text-indigo-300 focus:outline-none">
+                            <span class="text-[11px] font-mono text-indigo-300">Ω</span>
+                        </div>
+                    </div>
+                    <input type="range" id="range-rl" min="1" max="100" step="0.5" value="8" class="w-full">
+                </div>
+
+                <div class="flex items-center justify-between text-[11px] pt-0.5">
+                    <span class="text-slate-400">Syarat P<sub>max</sub>: R<sub>L</sub> = <span id="sidebar-rn-val" class="font-mono text-emerald-400 font-semibold">8.00 Ω</span></span>
+                    <button id="btn-match-rn" class="text-amber-400 hover:text-amber-300 font-semibold underline decoration-amber-400/50">Samakan</button>
+                </div>
+            </div>
+
+            <!-- Legenda Visualisasi Partikel & Meter -->
+            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 space-y-1.5 text-[11px] text-slate-400 mt-auto">
+                <div class="font-semibold text-slate-300 mb-1">Keterangan Visualisasi Arus:</div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span>
+                    <span>Arus Sumber / Masuk Node</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+                    <span>Arus Cabang Paralel (R<sub>2</sub> / R<sub>N</sub>)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-400 shrink-0"></span>
+                    <span>Arus Beban (I<sub>L</sub>) pada R<sub>L</sub></span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- AREA KERJA UTAMA KANAN (Scrollable rapi tanpa elemen terpotong) -->
+        <main class="flex-1 p-3.5 sm:p-4 lg:overflow-y-auto flex flex-col gap-3.5">
+            
+            <!-- 1. TAB MODE ANALISIS STEP-BY-STEP DI ATAS KANVAS -->
+            <div class="grid grid-cols-2 xl:grid-cols-4 gap-2" id="step-mode-selector">
+                <button data-step="normal" class="step-btn active p-2.5 rounded-xl bg-cyan-500/15 border border-cyan-500 text-left transition">
+                    <div class="text-[10px] uppercase tracking-wider font-bold text-cyan-400">Normal</div>
+                    <div class="text-xs font-bold text-white mt-0.5 truncate">Perbandingan Rangkaian</div>
+                </button>
+                <button data-step="step1" class="step-btn p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-left transition">
+                    <div class="text-[10px] uppercase tracking-wider font-bold text-rose-400">Langkah 1</div>
+                    <div class="text-xs font-bold text-slate-200 mt-0.5 truncate">Cari I<sub>N</sub> (Short A–B)</div>
+                </button>
+                <button data-step="step2" class="step-btn p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-left transition">
+                    <div class="text-[10px] uppercase tracking-wider font-bold text-emerald-400">Langkah 2</div>
+                    <div class="text-xs font-bold text-slate-200 mt-0.5 truncate">Cari R<sub>N</sub> (Matikan Sumber)</div>
+                </button>
+                <button data-step="step3" class="step-btn p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-left transition">
+                    <div class="text-[10px] uppercase tracking-wider font-bold text-indigo-400">Langkah 3</div>
+                    <div class="text-xs font-bold text-slate-200 mt-0.5 truncate">Ekivalen &amp; Daya Maksimum</div>
+                </button>
+            </div>
+
+            <!-- Banner Konteks Mode Aktif -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5">
+                    <span id="step-badge" class="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 font-mono text-xs font-bold shrink-0">MODE NORMAL</span>
+                    <p id="step-instruction" class="text-xs text-slate-300 leading-snug">
+                        Membandingkan <strong class="text-white">Rangkaian Asli</strong> dan <strong class="text-amber-300">Rangkaian Ekivalen Norton</strong> secara sejajar. Perhatikan pembacaan Ammeter <span class="font-mono text-indigo-300">I<sub>L</sub></span> dan Voltmeter <span class="font-mono text-cyan-300">V<sub>AB</sub></span> identik!
+                    </p>
+                </div>
+                <div id="equiv-status-pill" class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-[11px] font-semibold text-emerald-400">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    <span>Ekivalen Terbukti Identik</span>
+                </div>
+            </div>
+
+            <!-- 2. AREA DIAGRAM RANGKAIAN & GRAFIK (Tinggi Kartu Sejajar Presisi) -->
+            <div id="visual-workspace" class="grid grid-cols-1 gap-3.5">
+                
+                <!-- Kanvas Diagram Utama -->
+                <div id="circuit-card" class="bg-slate-900 border border-slate-800 rounded-2xl p-2.5 shadow-lg flex flex-col">
+                    <div id="canvas-container" class="w-full h-[350px] sm:h-[385px] bg-slate-950 rounded-xl border border-slate-800/90 relative overflow-hidden">
+                        <canvas id="circuitCanvas" class="w-full h-full block"></canvas>
+                    </div>
+                </div>
+
+                <!-- Kartu Grafik Kurva Daya P_L vs R_L (Muncul berdampingan pada Langkah 3, atau di bawah pada mode lain) -->
+                <div id="chart-card" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg flex-col justify-between">
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400">Kurva Transfer Daya Beban (P<sub>L</sub> vs R<sub>L</sub>)</h3>
+                            <p class="text-[11px] text-slate-400">Puncak daya maksimum dicapai tepat saat <span class="font-mono text-emerald-400">R<sub>L</sub> = R<sub>N</sub></span></p>
+                        </div>
+                        <span id="chart-pmax-badge" class="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 font-mono text-[11px] font-bold text-amber-300">
+                            P_max = 11.52 W
+                        </span>
+                    </div>
+                    <div class="flex-1 min-h-[270px] bg-slate-950 rounded-xl border border-slate-800/90 p-2 relative">
+                        <canvas id="chartCanvas" class="w-full h-full block"></canvas>
+                    </div>
+                    <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-300 bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-800 font-mono">
+                        <span>Titik Operasi Saat Ini:</span>
+                        <span id="chart-current-point" class="text-cyan-300 font-bold">R_L = 8.0 Ω → P_L = 11.52 W</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 3. PANEL METRIK RINGKAS 5 KOLOM SEJAJAR RAPI -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2.5">
+                <!-- Metrik 1: IN -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-semibold text-slate-400">Arus Norton</span>
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 font-bold">I<sub>N</sub></span>
+                    </div>
+                    <div id="metric-in" class="font-mono text-lg sm:text-xl font-bold text-amber-400 mt-1">2.400 A</div>
+                    <div class="text-[10px] text-slate-500 mt-0.5">Arus Hubung Singkat A–B</div>
+                </div>
+
+                <!-- Metrik 2: RN -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-semibold text-slate-400">Resistansi Norton</span>
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-bold">R<sub>N</sub></span>
+                    </div>
+                    <div id="metric-rn" class="font-mono text-lg sm:text-xl font-bold text-emerald-400 mt-1">8.000 Ω</div>
+                    <div class="text-[10px] text-slate-500 mt-0.5">Hambatan Sumber Pasif</div>
+                </div>
+
+                <!-- Metrik 3: IL -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-semibold text-slate-400">Arus Beban</span>
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 font-bold">I<sub>L</sub></span>
+                    </div>
+                    <div id="metric-il" class="font-mono text-lg sm:text-xl font-bold text-indigo-300 mt-1">1.200 A</div>
+                    <div id="metric-il-sub" class="text-[10px] text-slate-500 mt-0.5">Asli: 1.200 A (Sama)</div>
+                </div>
+
+                <!-- Metrik 4: VAB -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-semibold text-slate-400">Tegangan Terminal</span>
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 font-bold">V<sub>AB</sub></span>
+                    </div>
+                    <div id="metric-vab" class="font-mono text-lg sm:text-xl font-bold text-cyan-300 mt-1">9.600 V</div>
+                    <div id="metric-vab-sub" class="text-[10px] text-slate-500 mt-0.5">Asli: 9.600 V (Sama)</div>
+                </div>
+
+                <!-- Metrik 5: PL -->
+                <div class="col-span-2 sm:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-semibold text-slate-400">Daya Beban</span>
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300 font-bold">P<sub>L</sub></span>
+                    </div>
+                    <div id="metric-pl" class="font-mono text-lg sm:text-xl font-bold text-white mt-1">11.52 W</div>
+                    <div id="metric-pl-sub" class="text-[10px] text-amber-400/90 mt-0.5">P_max: 11.52 W</div>
+                </div>
+            </div>
+
+            <!-- 4. PENURUNAN RUMUS MATEMATIS DINAMIS (SUBSTITUSI ANGKA REAL-TIME) -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-800">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                        Langkah Perhitungan Matematis Real-Time
+                    </h3>
+                    <span class="text-[11px] font-mono text-slate-400">Substitusi Langsung Parameter Aktif</span>
+                </div>
+
+                <div id="math-steps-grid" class="grid grid-cols-1 lg:grid-cols-3 gap-3 text-xs">
+                    <!-- Konten diisi dinamis oleh JavaScript -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAL TEORI SINGKAT TEOREMA NORTON -->
+    <div id="theory-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-xl w-full p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h2 class="text-base font-bold text-white flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                    Ringkasan Teorema Norton
+                </h2>
+                <button id="btn-close-modal" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="space-y-2.5 text-xs text-slate-300 leading-relaxed">
+                <p>
+                    <strong class="text-cyan-400">Teorema Norton</strong> menyederhanakan rangkaian linear dua terminal (A–B) menjadi satu <strong>sumber arus ekivalen ($I_N$)</strong> yang diparalelkan dengan satu <strong>resistansi ekivalen ($R_N$)</strong>.
+                </p>
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 font-mono text-[11px] space-y-1.5">
+                    <div><span class="text-rose-400 font-bold">1. Arus Norton (I_N):</span> Lepas beban $R_L$, hubung-singkatkan terminal A–B, lalu hitung arus hubung singkat $I_{sc} = I_N$.</div>
+                    <div><span class="text-emerald-400 font-bold">2. Resistansi Norton (R_N):</span> Matikan semua sumber independen ($V \rightarrow$ Short, $I \rightarrow$ Open), lalu hitung hambatan total dari terminal A–B.</div>
+                    <div><span class="text-indigo-300 font-bold">3. Pembagi Arus Beban:</span> $I_L = I_N \times \frac{R_N}{R_N + R_L}$ dan daya maksimum terjadi saat $R_L = R_N$.</div>
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button id="btn-close-modal-2" class="px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition">
+                    Tutup Panduan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT: MESIN PERHITUNGAN NODAL, DIAGRAM KANVAS PRESISI & ANIMASI ARUS -->
+    <script>
+        const state = {
+            topology: 0,           // 0: 1 Sumber V, 1: 2 Sumber V, 2: Campuran V & I
+            stepMode: 'normal',    // 'normal', 'step1', 'step2', 'step3'
+            isPlaying: true,
+            conventionalFlow: true,
+
+            // Parameter Komponen
+            v1: 24,
+            v2: 12,
+            is: 2,
+            r1: 6,
+            r2: 12,
+            r3: 4,
+            rl: 8,
+
+            calc: {}
+        };
+
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const chartCanvas = document.getElementById('chartCanvas');
+        const chartCtx = chartCanvas.getContext('2d');
+
+        let animOffset = 0;
+        let lastTimestamp = 0;
+
+        function init() {
+            setupEvents();
+            resizeAllCanvases();
+            window.addEventListener('resize', resizeAllCanvases);
+            updateAll();
+            requestAnimationFrame(loop);
+        }
+
+        function resizeAllCanvases() {
+            const dpr = window.devicePixelRatio || 1;
+
+            const cRect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = cRect.width * dpr;
+            canvas.height = cRect.height * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            const gRect = chartCanvas.parentElement.getBoundingClientRect();
+            if (gRect.width > 0 && gRect.height > 0) {
+                chartCanvas.width = gRect.width * dpr;
+                chartCanvas.height = gRect.height * dpr;
+                chartCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                drawChart();
+            }
+        }
+
+        function setupEvents() {
+            // 1. Tab Topologi di Header
+            document.querySelectorAll('.topo-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    state.topology = parseInt(tab.dataset.topo);
+                    updateTopologyUI();
+                    updateAll();
+                });
+            });
+
+            // 2. Tab Mode Langkah di Atas Kanvas
+            document.querySelectorAll('.step-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.stepMode = btn.dataset.step;
+                    updateStepModeUI();
+                    resizeAllCanvases();
+                    updateAll();
+                });
+            });
+
+            // 3. Sinkronisasi Slider & Input Angka
+            const bindControl = (key, rangeId, numId) => {
+                const rEl = document.getElementById(rangeId);
+                const nEl = document.getElementById(numId);
+
+                rEl.addEventListener('input', (e) => {
+                    state[key] = parseFloat(e.target.value);
+                    nEl.value = state[key];
+                    updateAll();
+                });
+
+                nEl.addEventListener('input', (e) => {
+                    let val = parseFloat(e.target.value);
+                    if (isNaN(val)) return;
+                    val = Math.max(parseFloat(rEl.min), Math.min(parseFloat(rEl.max), val));
+                    state[key] = val;
+                    rEl.value = val;
+                    updateAll();
+                });
+            };
+
+            bindControl('v1', 'range-v1', 'num-v1');
+            bindControl('v2', 'range-v2', 'num-v2');
+            bindControl('is', 'range-is', 'num-is');
+            bindControl('r1', 'range-r1', 'num-r1');
+            bindControl('r2', 'range-r2', 'num-r2');
+            bindControl('r3', 'range-r3', 'num-r3');
+            bindControl('rl', 'range-rl', 'num-rl');
+
+            // 4. Tombol Daya Maksimum (RL = RN)
+            const setMaxPower = () => {
+                calculateCircuit();
+                const targetRL = Math.max(1, Math.min(100, parseFloat(state.calc.rn.toFixed(1))));
+                state.rl = targetRL;
+                document.getElementById('range-rl').value = targetRL;
+                document.getElementById('num-rl').value = targetRL;
+                updateAll();
+            };
+            document.getElementById('btn-max-power').addEventListener('click', setMaxPower);
+            document.getElementById('btn-match-rn').addEventListener('click', setMaxPower);
+
+            // 5. Reset Parameter
+            document.getElementById('btn-reset-params').addEventListener('click', () => {
+                state.v1 = 24; state.v2 = 12; state.is = 2;
+                state.r1 = 6; state.r2 = 12; state.r3 = 4; state.rl = 8;
+                ['v1', 'v2', 'is', 'r1', 'r2', 'r3', 'rl'].forEach(k => {
+                    document.getElementById(`range-${k}`).value = state[k];
+                    document.getElementById(`num-${k}`).value = state[k];
+                });
+                updateAll();
+            });
+
+            // 6. Toggle Play / Pause Animasi
+            document.getElementById('btn-toggle-anim').addEventListener('click', () => {
+                state.isPlaying = !state.isPlaying;
+                document.getElementById('icon-pause').classList.toggle('hidden', !state.isPlaying);
+                document.getElementById('icon-play').classList.toggle('hidden', state.isPlaying);
+                document.getElementById('text-anim-state').textContent = state.isPlaying ? 'Pause' : 'Play';
+            });
+
+            // 7. Toggle Konvensional vs Elektron
+            document.getElementById('btn-current-dir').addEventListener('click', () => {
+                state.conventionalFlow = !state.conventionalFlow;
+                const lbl = document.getElementById('label-current-dir');
+                const dot = document.getElementById('dot-dir-indicator');
+                if (state.conventionalFlow) {
+                    lbl.textContent = 'Konvensional (+ → -)';
+                    dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+                } else {
+                    lbl.textContent = 'Aliran Elektron (- → +)';
+                    dot.className = 'w-2 h-2 rounded-full bg-cyan-400 animate-pulse';
+                }
+            });
+
+            // 8. Modal Teori
+            const modal = document.getElementById('theory-modal');
+            document.getElementById('btn-theory-modal').addEventListener('click', () => {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+            const closeModal = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            };
+            document.getElementById('btn-close-modal').addEventListener('click', closeModal);
+            document.getElementById('btn-close-modal-2').addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        }
+
+        function updateTopologyUI() {
+            document.querySelectorAll('.topo-tab').forEach((tab, idx) => {
+                if (idx === state.topology) {
+                    tab.className = 'topo-tab active px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition';
+                } else {
+                    tab.className = 'topo-tab px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 border border-transparent transition';
+                }
+            });
+
+            document.getElementById('topo-indicator').textContent = `Topologi ${state.topology + 1}`;
+            const labelV1 = document.getElementById('label-v1');
+            const ctrlV2 = document.getElementById('ctrl-v2');
+            const ctrlIs = document.getElementById('ctrl-is');
+
+            if (state.topology === 0) {
+                labelV1.innerHTML = 'Tegangan Sumber (V<sub>s</sub>)';
+                ctrlV2.classList.add('hidden');
+                ctrlIs.classList.add('hidden');
+            } else if (state.topology === 1) {
+                labelV1.innerHTML = 'Tegangan Sumber 1 (V<sub>1</sub>)';
+                ctrlV2.classList.remove('hidden');
+                ctrlIs.classList.add('hidden');
+            } else {
+                labelV1.innerHTML = 'Tegangan Sumber (V<sub>s</sub>)';
+                ctrlV2.classList.add('hidden');
+                ctrlIs.classList.remove('hidden');
+            }
+        }
+
+        function updateStepModeUI() {
+            const themeMap = {
+                normal: { color: 'cyan', badge: 'MODE NORMAL', text: 'Membandingkan <strong>Rangkaian Asli</strong> dan <strong>Rangkaian Ekivalen Norton</strong> secara sejajar. Pembacaan Ammeter <span class="font-mono text-indigo-300">I<sub>L</sub></span> dan Voltmeter <span class="font-mono text-cyan-300">V<sub>AB</sub></span> bernilai identik.' },
+                step1:  { color: 'rose', badge: 'LANGKAH 1: I_N', text: 'Beban <span class="font-mono text-indigo-300">R<sub>L</sub></span> dilepas dan terminal <span class="font-mono text-white">A–B</span> dihubung-singkatkan dengan kawat merah tebal. Arus hubung singkat yang mengalir adalah <span class="font-mono text-rose-400 font-bold">I<sub>sc</sub> = I<sub>N</sub></span>.' },
+                step2:  { color: 'emerald', badge: 'LANGKAH 2: R_N', text: 'Semua sumber independen dimatikan (<span class="text-amber-300">Sumber V → Short</span>, <span class="text-emerald-300">Sumber I → Open</span>). Ohmmeter pada terminal <span class="font-mono text-white">A–B</span> mengukur resistansi ekivalen <span class="font-mono text-emerald-400 font-bold">R<sub>N</sub></span>.' },
+                step3:  { color: 'indigo', badge: 'LANGKAH 3: EKIVALEN', text: 'Rangkaian ekivalen Norton (<span class="font-mono text-amber-300">I<sub>N</sub> || R<sub>N</sub></span>) dihubungkan ke beban <span class="font-mono text-indigo-300">R<sub>L</sub></span>, berdampingan dengan kurva analisis <strong>Transfer Daya Maksimum</strong>.' }
+            };
+
+            document.querySelectorAll('.step-btn').forEach(btn => {
+                const s = btn.dataset.step;
+                const c = themeMap[s].color;
+                const title = btn.querySelector('div:nth-child(2)');
+                if (s === state.stepMode) {
+                    btn.className = `step-btn active p-2.5 rounded-xl bg-${c}-500/15 border border-${c}-500 text-left transition`;
+                    title.className = 'text-xs font-bold text-white mt-0.5 truncate';
+                } else {
+                    btn.className = 'step-btn p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-left transition';
+                    title.className = 'text-xs font-bold text-slate-200 mt-0.5 truncate';
+                }
+            });
+
+            const info = themeMap[state.stepMode];
+            const badgeEl = document.getElementById('step-badge');
+            badgeEl.className = `px-2 py-0.5 rounded-md bg-${info.color}-500/20 text-${info.color}-300 font-mono text-xs font-bold shrink-0`;
+            badgeEl.textContent = info.badge;
+            document.getElementById('step-instruction').innerHTML = info.text;
+
+            // Atur tata letak area visualisasi (Langkah 3 menampilkan Diagram + Grafik sejajar)
+            const workspace = document.getElementById('visual-workspace');
+            const chartCard = document.getElementById('chart-card');
+            if (state.stepMode === 'step3') {
+                workspace.className = 'grid grid-cols-1 xl:grid-cols-12 gap-3.5';
+                document.getElementById('circuit-card').className = 'xl:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-2.5 shadow-lg flex flex-col';
+                chartCard.className = 'xl:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between';
+            } else {
+                workspace.className = 'grid grid-cols-1 gap-3.5';
+                document.getElementById('circuit-card').className = 'bg-slate-900 border border-slate-800 rounded-2xl p-2.5 shadow-lg flex flex-col';
+                chartCard.className = 'hidden';
+            }
+        }
+
+        /**
+         * MESIN PERHITUNGAN RANGKAIAN EKSAK (ANALISIS NODE)
+         */
+        function calculateCircuit() {
+            const { topology, v1, v2, is, r1, r2, r3, rl } = state;
+            const g1 = 1 / r1;
+            const g2 = 1 / r2;
+            const r3_safe = Math.max(0.0001, r3);
+            const g3 = 1 / r3_safe;
+
+            const r1_par_r2 = (r1 * r2) / (r1 + r2);
+            const rn = r3 + r1_par_r2;
+
+            let in_val = 0, vx_sc = 0, i1_sc = 0, i2_sc = 0;
+            let vx_norm = 0, i1_norm = 0, i2_norm = 0, il_norm = 0, vab_norm = 0;
+
+            if (topology === 0) {
+                vx_sc = (v1 * g1) / (g1 + g2 + g3);
+                in_val = vx_sc * g3;
+                i1_sc = (v1 - vx_sc) * g1;
+                i2_sc = vx_sc * g2;
+
+                const gRight = 1 / (r3 + rl);
+                vx_norm = (v1 * g1) / (g1 + g2 + gRight);
+                i1_norm = (v1 - vx_norm) * g1;
+                i2_norm = vx_norm * g2;
+                il_norm = vx_norm * gRight;
+                vab_norm = il_norm * rl;
+
+            } else if (topology === 1) {
+                vx_sc = (v1 * g1 + v2 * g2) / (g1 + g2 + g3);
+                in_val = vx_sc * g3;
+                i1_sc = (v1 - vx_sc) * g1;
+                i2_sc = (v2 - vx_sc) * g2; // Positif jika mengalir dari V2 masuk ke node atas
+
+                const gRight = 1 / (r3 + rl);
+                vx_norm = (v1 * g1 + v2 * g2) / (g1 + g2 + gRight);
+                i1_norm = (v1 - vx_norm) * g1;
+                i2_norm = (v2 - vx_norm) * g2;
+                il_norm = vx_norm * gRight;
+                vab_norm = il_norm * rl;
+
+            } else {
+                vx_sc = (v1 * g1 + is) / (g1 + g2 + g3);
+                in_val = vx_sc * g3;
+                i1_sc = (v1 - vx_sc) * g1;
+                i2_sc = vx_sc * g2;
+
+                const gRight = 1 / (r3 + rl);
+                vx_norm = (v1 * g1 + is) / (g1 + g2 + gRight);
+                i1_norm = (v1 - vx_norm) * g1;
+                i2_norm = vx_norm * g2;
+                il_norm = vx_norm * gRight;
+                vab_norm = il_norm * rl;
+            }
+
+            const il_norton = in_val * (rn / (rn + rl));
+            const irn_norton = in_val - il_norton;
+            const vab_norton = il_norton * rl;
+            const pl_orig = il_norm * il_norm * rl;
+            const pl_norton = il_norton * il_norton * rl;
+            const p_max = Math.pow(in_val * 0.5, 2) * rn;
+
+            state.calc = {
+                rn, in_val, r1_par_r2,
+                vx_sc, i1_sc, i2_sc,
+                vx_norm, i1_norm, i2_norm, il_norm, vab_norm, pl_orig,
+                il_norton, irn_norton, vab_norton, pl_norton, p_max
+            };
+        }
+
+        function updateAll() {
+            calculateCircuit();
+            const c = state.calc;
+
+            // Update Info RN di Sidebar
+            document.getElementById('sidebar-rn-val').textContent = `${c.rn.toFixed(2)} Ω`;
+
+            // Update 5 Kartu Metrik Utama
+            document.getElementById('metric-in').textContent = `${c.in_val.toFixed(3)} A`;
+            document.getElementById('metric-rn').textContent = `${c.rn.toFixed(3)} Ω`;
+            document.getElementById('metric-il').textContent = `${c.il_norton.toFixed(3)} A`;
+            document.getElementById('metric-il-sub').textContent = `Rangkaian Asli: ${c.il_norm.toFixed(3)} A`;
+            document.getElementById('metric-vab').textContent = `${c.vab_norton.toFixed(3)} V`;
+            document.getElementById('metric-vab-sub').textContent = `Rangkaian Asli: ${c.vab_norm.toFixed(3)} V`;
+            document.getElementById('metric-pl').textContent = `${c.pl_norton.toFixed(2)} W`;
+            document.getElementById('metric-pl-sub').textContent = `P_max Teoritis: ${c.p_max.toFixed(2)} W`;
+
+            // Update Info Grafik
+            document.getElementById('chart-pmax-badge').textContent = `P_max = ${c.p_max.toFixed(2)} W`;
+            document.getElementById('chart-current-point').textContent = `R_L = ${state.rl.toFixed(1)} Ω → P_L = ${c.pl_norton.toFixed(2)} W`;
+
+            renderMathSteps();
+            if (state.stepMode === 'step3') drawChart();
+        }
+
+        function renderMathSteps() {
+            const { topology, v1, v2, is, r1, r2, r3, rl } = state;
+            const c = state.calc;
+            const grid = document.getElementById('math-steps-grid');
+
+            let s1Body = '';
+            if (topology === 0) {
+                s1Body = `
+                    <div>• Tegangan Node Tengah (A–B Short):</div>
+                    <div class="text-slate-400">V<sub>x</sub> = (V<sub>s</sub>/R<sub>1</sub>) / (1/R<sub>1</sub> + 1/R<sub>2</sub> + 1/R<sub>3</sub>) = <span class="text-white">${c.vx_sc.toFixed(2)} V</span></div>
+                    <div>• Arus Hubung Singkat Norton:</div>
+                    <div class="text-rose-300 font-bold">I<sub>N</sub> = V<sub>x</sub> / R<sub>3</sub> = ${c.vx_sc.toFixed(2)} / ${r3} = ${c.in_val.toFixed(3)} A</div>
+                `;
+            } else if (topology === 1) {
+                s1Body = `
+                    <div>• KCL Node Tengah (A–B Short):</div>
+                    <div class="text-slate-400">(V<sub>1</sub>−V<sub>x</sub>)/${r1} + (V<sub>2</sub>−V<sub>x</sub>)/${r2} = V<sub>x</sub>/${r3} → V<sub>x</sub> = <span class="text-white">${c.vx_sc.toFixed(2)} V</span></div>
+                    <div>• Arus Hubung Singkat Norton:</div>
+                    <div class="text-rose-300 font-bold">I<sub>N</sub> = V<sub>x</sub> / R<sub>3</sub> = ${c.vx_sc.toFixed(2)} / ${r3} = ${c.in_val.toFixed(3)} A</div>
+                `;
+            } else {
+                s1Body = `
+                    <div>• KCL Node Tengah (A–B Short):</div>
+                    <div class="text-slate-400">(V<sub>s</sub>−V<sub>x</sub>)/${r1} + ${is} = V<sub>x</sub>/${r2} + V<sub>x</sub>/${r3} → V<sub>x</sub> = <span class="text-white">${c.vx_sc.toFixed(2)} V</span></div>
+                    <div>• Arus Hubung Singkat Norton:</div>
+                    <div class="text-rose-300 font-bold">I<sub>N</sub> = V<sub>x</sub> / R<sub>3</sub> = ${c.vx_sc.toFixed(2)} / ${r3} = ${c.in_val.toFixed(3)} A</div>
+                `;
+            }
+
+            grid.innerHTML = `
+                <!-- Kotak Langkah 1 -->
+                <div class="bg-slate-950/80 border ${state.stepMode === 'step1' ? 'border-rose-500/70' : 'border-slate-800'} rounded-xl p-3 space-y-1.5">
+                    <div class="text-[11px] font-bold text-rose-400 uppercase tracking-wide">1. Arus Norton (I<sub>N</sub>)</div>
+                    <div class="font-mono text-[11px] text-slate-300 space-y-1 leading-relaxed">
+                        ${s1Body}
+                    </div>
+                </div>
+
+                <!-- Kotak Langkah 2 -->
+                <div class="bg-slate-950/80 border ${state.stepMode === 'step2' ? 'border-emerald-500/70' : 'border-slate-800'} rounded-xl p-3 space-y-1.5">
+                    <div class="text-[11px] font-bold text-emerald-400 uppercase tracking-wide">2. Resistansi Norton (R<sub>N</sub>)</div>
+                    <div class="font-mono text-[11px] text-slate-300 space-y-1 leading-relaxed">
+                        <div>• Matikan sumber independen, tinjau dari A–B:</div>
+                        <div class="text-slate-400">R<sub>1</sub> || R<sub>2</sub> = (${r1} × ${r2}) / (${r1} + ${r2}) = <span class="text-white">${c.r1_par_r2.toFixed(2)} Ω</span></div>
+                        <div>• Seri dengan R<sub>3</sub>:</div>
+                        <div class="text-emerald-300 font-bold">R<sub>N</sub> = ${r3} + ${c.r1_par_r2.toFixed(2)} = ${c.rn.toFixed(3)} Ω</div>
+                    </div>
+                </div>
+
+                <!-- Kotak Langkah 3 -->
+                <div class="bg-slate-950/80 border ${state.stepMode === 'step3' ? 'border-indigo-500/70' : 'border-slate-800'} rounded-xl p-3 space-y-1.5">
+                    <div class="text-[11px] font-bold text-indigo-400 uppercase tracking-wide">3. Analisis Beban (R<sub>L</sub> = ${rl} Ω)</div>
+                    <div class="font-mono text-[11px] text-slate-300 space-y-1 leading-relaxed">
+                        <div>• Aturan Pembagi Arus Norton:</div>
+                        <div class="text-indigo-300 font-bold">I<sub>L</sub> = ${c.in_val.toFixed(2)} × [${c.rn.toFixed(2)} / (${c.rn.toFixed(2)} + ${rl})] = ${c.il_norton.toFixed(3)} A</div>
+                        <div>• Tegangan &amp; Daya Beban:</div>
+                        <div class="text-cyan-300">V<sub>AB</sub> = ${c.vab_norton.toFixed(2)} V &nbsp;|&nbsp; P<sub>L</sub> = ${c.pl_norton.toFixed(2)} W</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * GRAFIK KURVA DAYA PL vs RL
+         */
+        function drawChart() {
+            const rect = chartCanvas.parentElement.getBoundingClientRect();
+            const w = rect.width - 16;
+            const h = rect.height - 16;
+            if (w <= 20 || h <= 20) return;
+
+            chartCtx.clearRect(0, 0, w, h);
+
+            const { in_val, rn, pl_norton, p_max } = state.calc;
+            const maxRL = Math.max(40, Math.ceil(rn * 2.8));
+
+            const padL = 42, padR = 18, padT = 22, padB = 28;
+            const plotW = w - padL - padR;
+            const plotH = h - padT - padB;
+            const pScaleMax = Math.max(1, p_max * 1.18);
+
+            // Grid horizontal
+            chartCtx.strokeStyle = '#1e293b';
+            chartCtx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = padT + (plotH * i) / 4;
+                chartCtx.beginPath();
+                chartCtx.moveTo(padL, y);
+                chartCtx.lineTo(padL + plotW, y);
+                chartCtx.stroke();
+            }
+
+            // Sumbu Utama
+            chartCtx.strokeStyle = '#475569';
+            chartCtx.beginPath();
+            chartCtx.moveTo(padL, padT);
+            chartCtx.lineTo(padL, padT + plotH);
+            chartCtx.lineTo(padL + plotW, padT + plotH);
+            chartCtx.stroke();
+
+            // Kurva P_L(R_L) dengan area gradien halus
+            chartCtx.beginPath();
+            for (let px = 0; px <= plotW; px += 2) {
+                const rVal = (px / plotW) * maxRL;
+                const il = in_val * (rn / (rn + rVal));
+                const pVal = il * il * rVal;
+                const py = padT + plotH - (pVal / pScaleMax) * plotH;
+                if (px === 0) chartCtx.moveTo(padL + px, py);
+                else chartCtx.lineTo(padL + px, py);
+            }
+            chartCtx.strokeStyle = '#f59e0b';
+            chartCtx.lineWidth = 2.4;
+            chartCtx.stroke();
+
+            // Garis Penanda Daya Maksimum (RL = RN)
+            if (rn <= maxRL) {
+                const xMax = padL + (rn / maxRL) * plotW;
+                const yMax = padT + plotH - (p_max / pScaleMax) * plotH;
+                chartCtx.save();
+                chartCtx.setLineDash([4, 4]);
+                chartCtx.strokeStyle = '#10b981';
+                chartCtx.beginPath();
+                chartCtx.moveTo(xMax, padT + plotH);
+                chartCtx.lineTo(xMax, yMax);
+                chartCtx.stroke();
+                chartCtx.restore();
+
+                chartCtx.fillStyle = '#34d399';
+                chartCtx.font = 'bold 10px JetBrains Mono';
+                chartCtx.fillText(`R_N=${rn.toFixed(1)}Ω`, Math.min(w - 62, xMax - 22), padT + plotH + 14);
+            }
+
+            // Titik Operasi Aktif
+            if (state.rl <= maxRL) {
+                const xCur = padL + (state.rl / maxRL) * plotW;
+                const yCur = padT + plotH - (pl_norton / pScaleMax) * plotH;
+
+                chartCtx.beginPath();
+                chartCtx.arc(xCur, yCur, 5.5, 0, Math.PI * 2);
+                chartCtx.fillStyle = '#06b6d4';
+                chartCtx.fill();
+                chartCtx.strokeStyle = '#ffffff';
+                chartCtx.lineWidth = 1.5;
+                chartCtx.stroke();
+
+                chartCtx.fillStyle = '#22d3ee';
+                chartCtx.font = 'bold 10px JetBrains Mono';
+                chartCtx.fillText(`${pl_norton.toFixed(1)}W`, Math.min(w - 44, xCur + 8), Math.max(14, yCur - 5));
+            }
+
+            // Label Sumbu
+            chartCtx.fillStyle = '#94a3b8';
+            chartCtx.font = '10px Inter';
+            chartCtx.fillText('P_L (W)', 4, padT + 4);
+            chartCtx.fillText('0', padL - 10, padT + plotH + 14);
+            chartCtx.fillText('R_L (Ω)', padL + plotW - 32, padT + plotH + 24);
+        }
+
+        /**
+         * LOOP ANIMASI & RENDERING DIAGRAM RANGKAIAN PRESISI TANPA TEKS BERTUMPUK
+         */
+        function loop(ts) {
+            if (!lastTimestamp) lastTimestamp = ts;
+            const dt = (ts - lastTimestamp) / 1000;
+            lastTimestamp = ts;
+
+            if (state.isPlaying) {
+                animOffset += dt;
+            }
+            renderCanvas();
+            requestAnimationFrame(loop);
+        }
+
+        function renderCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const W = rect.width;
+            const H = rect.height;
+            if (W <= 0 || H <= 0) return;
+
+            ctx.clearRect(0, 0, W, H);
+            drawBlueprintGrid(W, H);
+
+            if (state.stepMode === 'normal') {
+                // Bagi menjadi 2 kartu seimbang: Rangkaian Asli (56%) & Ekivalen Norton (44%)
+                const gap = 14;
+                const leftW = (W - gap * 3) * 0.56;
+                const rightW = (W - gap * 3) * 0.44;
+
+                drawPanelFrame(gap, 10, leftW, H - 20, 'RANGKAIAN ASLI (JARINGAN LINEAR + BEBAN)', '#38bdf8');
+                drawOriginalCircuit(gap, 10, leftW, H - 20, 'normal');
+
+                drawPanelFrame(gap * 2 + leftW, 10, rightW, H - 20, 'RANGKAIAN EKIVALEN NORTON', '#fbbf24');
+                drawNortonCircuit(gap * 2 + leftW, 10, rightW, H - 20);
+
+            } else if (state.stepMode === 'step1' || state.stepMode === 'step2') {
+                const pad = 16;
+                const boxW = W - pad * 2;
+                const title = state.stepMode === 'step1'
+                    ? 'LANGKAH 1: HUBUNG SINGKAT TERMINAL A–B UNTUK MENCARI I_N'
+                    : 'LANGKAH 2: NONAKTIFKAN SEMUA SUMBER UNTUK MENGUKUR R_N';
+                const color = state.stepMode === 'step1' ? '#fb7185' : '#34d399';
+
+                drawPanelFrame(pad, 10, boxW, H - 20, title, color);
+                drawOriginalCircuit(pad, 10, boxW, H - 20, state.stepMode);
+
+            } else if (state.stepMode === 'step3') {
+                const pad = 14;
+                const boxW = W - pad * 2;
+                drawPanelFrame(pad, 10, boxW, H - 20, 'RANGKAIAN EKIVALEN NORTON + BEBAN R_L', '#fbbf24');
+                drawNortonCircuit(pad, 10, boxW, H - 20);
+            }
+        }
+
+        function drawBlueprintGrid(W, H) {
+            ctx.strokeStyle = 'rgba(30, 41, 59, 0.32)';
+            ctx.lineWidth = 1;
+            const step = 24;
+            for (let x = 0; x < W; x += step) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+            }
+            for (let y = 0; y < H; y += step) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+            }
+        }
+
+        function drawPanelFrame(x, y, w, h, title, titleColor) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.roundRect(x, y, w, h, 12);
+            ctx.fill();
+            ctx.stroke();
+
+            // Header bar mini di dalam panel diagram
+            ctx.fillStyle = titleColor;
+            ctx.font = 'bold 11px Inter';
+            ctx.textAlign = 'left';
+            ctx.fillText(title, x + 14, y + 22);
+            ctx.restore();
+        }
+
+        /**
+         * DIAGRAM RANGKAIAN ASLI DENGAN KOORDINAT & PADDING ANTI-TUMPUK
+         */
+        function drawOriginalCircuit(x0, y0, w, h, mode) {
+            const { topology, v1, v2, is, r1, r2, r3, rl } = state;
+            const c = state.calc;
+
+            // Zona koordinat aman di dalam kotak panel
+            const leftX  = x0 + w * 0.17;
+            const midX   = x0 + w * 0.50;
+            const termX  = x0 + w * 0.74;
+            const loadX  = x0 + w * 0.90;
+
+            const topY   = y0 + h * 0.25;
+            const botY   = y0 + h * 0.80;
+            const midY   = (topY + botY) / 2;
+
+            // Kotak batas putus-putus Jaringan Norton (di sebelah kiri terminal A-B)
+            ctx.save();
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.28)';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.roundRect(x0 + 14, topY - 30, (termX - x0) - 22, (botY - topY) + 52, 10);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.55)';
+            ctx.font = '10px Inter';
+            ctx.textAlign = 'left';
+            ctx.fillText('Jaringan Linear Dua Terminal', x0 + 22, botY + 16);
+            ctx.restore();
+
+            // Tentukan besar arus setiap cabang
+            let iLeft = 0, iMid = 0, iRight = 0;
+            if (mode === 'normal') {
+                iLeft = c.i1_norm;
+                iMid = (topology === 1) ? -c.i2_norm : c.i2_norm;
+                iRight = c.il_norm;
+            } else if (mode === 'step1') {
+                iLeft = c.i1_sc;
+                iMid = (topology === 1) ? -c.i2_sc : c.i2_sc;
+                iRight = c.in_val;
+            }
+
+            // 1. GAMBAR JALUR KAWAT UTAMA
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2.4;
+
+            // Kawat kiri & tengah
+            drawLine(leftX, botY, leftX, topY);
+            drawLine(leftX, topY, termX, topY);
+            drawLine(leftX, botY, termX, botY);
+            drawLine(midX, topY, midX, botY);
+
+            // Jalur cabang paralel sumber arus Is (khusus Topologi 3)
+            const isBranchX = leftX + (midX - leftX) * 0.54;
+            if (topology === 2) {
+                drawLine(isBranchX, topY, isBranchX, botY);
+            }
+
+            // Cabang Kanan Terminal A-B
+            if (mode === 'normal') {
+                drawLine(termX, topY, loadX, topY);
+                drawLine(loadX, topY, loadX, botY);
+                drawLine(loadX, botY, termX, botY);
+            } else if (mode === 'step1') {
+                // Kawat hubung singkat merah tebal di A-B
+                ctx.save();
+                ctx.strokeStyle = '#f43f5e';
+                ctx.lineWidth = 3.8;
+                drawLine(termX, topY, termX, botY);
+                ctx.restore();
+
+                // Panah & Label I_sc = I_N di sebelah kanan kawat short
+                drawCurrentArrow(termX + 14, midY - 18, termX + 14, midY + 18, '#fb7185');
+                drawTagBadge(termX + 22, midY, `I_sc = I_N = ${c.in_val.toFixed(2)} A`, '#fb7185', 'left');
+            } else if (mode === 'step2') {
+                // Terminal terbuka A-B dengan simbol Ohmmeter
+                ctx.save();
+                ctx.strokeStyle = '#10b981';
+                ctx.lineWidth = 2;
+                drawLine(termX, topY, termX + 34, topY);
+                drawLine(termX, botY, termX + 34, botY);
+                drawLine(termX + 34, topY, termX + 34, midY - 18);
+                drawLine(termX + 34, botY, termX + 34, midY + 18);
+                ctx.restore();
+
+                drawMeterCircle(termX + 34, midY, 'Ω', '#10b981');
+                drawTagBadge(termX + 54, midY, `R_N = ${c.rn.toFixed(2)} Ω`, '#34d399', 'left');
+            }
+
+            // 2. ANIMASI PARTIKEL ARUS DI KAWAT
+            if (mode === 'normal' || mode === 'step1') {
+                // Arus cabang kiri (Amber)
+                animateParticles(leftX, botY, leftX, topY, iLeft, '#fbbf24');
+                animateParticles(leftX, topY, midX, topY, iLeft, '#fbbf24');
+                animateParticles(midX, botY, leftX, botY, iLeft, '#fbbf24');
+
+                // Arus cabang tengah R2 (Emerald)
+                animateParticles(midX, topY, midX, botY, iMid, '#34d399');
+
+                // Arus sumber Is (Topologi 3)
+                if (topology === 2) {
+                    animateParticles(isBranchX, botY, isBranchX, topY, is, '#34d399');
+                }
+
+                // Arus cabang keluaran & beban (Indigo / Rose saat short)
+                const outColor = mode === 'step1' ? '#fb7185' : '#818cf8';
+                animateParticles(midX, topY, termX, topY, iRight, outColor);
+                if (mode === 'normal') {
+                    animateParticles(termX, topY, loadX, topY, iRight, outColor);
+                    animateParticles(loadX, topY, loadX, botY, iRight, outColor);
+                    animateParticles(loadX, botY, termX, botY, iRight, outColor);
+                } else {
+                    animateParticles(termX, topY, termX, botY, iRight, outColor);
+                }
+                animateParticles(termX, botY, midX, botY, iRight, outColor);
+            }
+
+            // 3. SIMBOL KOMPONEN ELEKTRONIKA (DENGAN JARAK AMAN)
+            // A. Sumber 1 di Cabang Kiri
+            if (mode === 'step2') {
+                drawShortedSymbol(leftX, midY, 'V=0 (Short)');
+            } else {
+                const lbl1 = topology === 1 ? `V₁ = ${v1}V` : `Vₛ = ${v1}V`;
+                drawVoltageSymbol(leftX, midY, v1, lbl1, 'left');
+            }
+
+            // B. Resistor R1 di Kawat Atas Kiri
+            const r1X = topology === 2 ? (leftX + isBranchX) / 2 : (leftX + midX) / 2;
+            drawResistorZigzagH(r1X, topY, `R₁ = ${r1}Ω`, '#38bdf8');
+
+            // C. Cabang Tengah sesuai Topologi
+            if (topology === 0) {
+                drawResistorZigzagV(midX, midY, `R₂ = ${r2}Ω`, '#38bdf8', 'right');
+            } else if (topology === 1) {
+                const yR2 = topY + (botY - topY) * 0.28;
+                const yV2 = topY + (botY - topY) * 0.72;
+                drawResistorZigzagV(midX, yR2, `R₂ = ${r2}Ω`, '#38bdf8', 'right');
+                if (mode === 'step2') {
+                    drawShortedSymbol(midX, yV2, 'V₂=0');
+                } else {
+                    drawVoltageSymbol(midX, yV2, v2, `V₂ = ${v2}V`, 'right');
+                }
+            } else if (topology === 2) {
+                if (mode === 'step2') {
+                    drawOpenedSymbol(isBranchX, midY, 'Iₛ=0 (Open)');
+                } else {
+                    drawCurrentSymbol(isBranchX, midY, is, `Iₛ = ${is}A`, 'left');
+                }
+                drawResistorZigzagV(midX, midY, `R₂ = ${r2}Ω`, '#38bdf8', 'right');
+            }
+
+            // D. Resistor R3 di Kawat Atas Kanan
+            drawResistorZigzagH((midX + termX) / 2, topY, `R₃ = ${r3}Ω`, '#38bdf8');
+
+            // E. Beban RL & Meter Pembacaan (Mode Normal)
+            if (mode === 'normal') {
+                drawResistorZigzagV(loadX, midY - 12, `R_L = ${rl}Ω`, '#818cf8', 'left');
+                // Ammeter I_L seri di bagian bawah cabang beban
+                drawMeterCircle(loadX, botY - 24, 'A', '#818cf8');
+                drawTagBadge(loadX, botY + 16, `I_L = ${c.il_norm.toFixed(2)} A`, '#c7d2fe', 'center');
+                // Pembacaan tegangan terminal V_AB di antara A dan B
+                drawTagBadge(termX, midY, `V_AB = ${c.vab_norm.toFixed(2)} V`, '#67e8f9', 'center');
+            }
+
+            // F. Titik Simpul (Node) & Terminal A - B
+            drawNodeDot(midX, topY, '#94a3b8');
+            drawNodeDot(midX, botY, '#94a3b8');
+            if (topology === 2) {
+                drawNodeDot(isBranchX, topY, '#94a3b8');
+                drawNodeDot(isBranchX, botY, '#94a3b8');
+            }
+            drawTerminalPoint(termX, topY, 'A', '#f43f5e');
+            drawTerminalPoint(termX, botY, 'B', '#3b82f6');
+        }
+
+        /**
+         * DIAGRAM RANGKAIAN EKIVALEN NORTON YANG BERSIH & TERSTRUKTUR
+         */
+        function drawNortonCircuit(x0, y0, w, h) {
+            const { rl } = state;
+            const c = state.calc;
+
+            const inX   = x0 + w * 0.22;
+            const rnX   = x0 + w * 0.50;
+            const termX = x0 + w * 0.70;
+            const loadX = x0 + w * 0.89;
+
+            const topY  = y0 + h * 0.25;
+            const botY  = y0 + h * 0.80;
+            const midY  = (topY + botY) / 2;
+
+            // Kotak batas putus-putus Sumber Ekivalen Norton
+            ctx.save();
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = 'rgba(251, 191, 36, 0.35)';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.roundRect(x0 + 14, topY - 30, (termX - x0) - 22, (botY - topY) + 52, 10);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(251, 191, 36, 0.65)';
+            ctx.font = '10px Inter';
+            ctx.textAlign = 'left';
+            ctx.fillText('Model Ekivalen Norton', x0 + 22, botY + 16);
+            ctx.restore();
+
+            // 1. Kawat Rangkaian
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2.4;
+
+            drawLine(inX, topY, loadX, topY);
+            drawLine(inX, botY, loadX, botY);
+            drawLine(inX, topY, inX, botY);
+            drawLine(rnX, topY, rnX, botY);
+            drawLine(loadX, topY, loadX, botY);
+
+            // 2. Animasi Partikel Arus
+            // Sumber Arus IN (Amber)
+            animateParticles(inX, botY, inX, topY, c.in_val, '#fbbf24');
+            animateParticles(inX, topY, rnX, topY, c.in_val, '#fbbf24');
+            animateParticles(rnX, botY, inX, botY, c.in_val, '#fbbf24');
+
+            // Cabang Resistansi Norton RN (Emerald)
+            animateParticles(rnX, topY, rnX, botY, c.irn_norton, '#34d399');
+
+            // Cabang Beban RL (Indigo)
+            animateParticles(rnX, topY, termX, topY, c.il_norton, '#818cf8');
+            animateParticles(termX, topY, loadX, topY, c.il_norton, '#818cf8');
+            animateParticles(loadX, topY, loadX, botY, c.il_norton, '#818cf8');
+            animateParticles(loadX, botY, termX, botY, c.il_norton, '#818cf8');
+            animateParticles(termX, botY, rnX, botY, c.il_norton, '#818cf8');
+
+            // 3. Simbol Komponen Norton
+            drawCurrentSymbol(inX, midY, c.in_val, `I_N = ${c.in_val.toFixed(2)}A`, 'left');
+            drawResistorZigzagV(rnX, midY, `R_N = ${c.rn.toFixed(2)}Ω`, '#10b981', 'right');
+            drawResistorZigzagV(loadX, midY - 12, `R_L = ${rl}Ω`, '#818cf8', 'left');
+
+            // Ammeter & Badge Pembacaan Identik
+            drawMeterCircle(loadX, botY - 24, 'A', '#818cf8');
+            drawTagBadge(loadX, botY + 16, `I_L = ${c.il_norton.toFixed(2)} A`, '#c7d2fe', 'center');
+            drawTagBadge(termX, midY, `V_AB = ${c.vab_norton.toFixed(2)} V`, '#67e8f9', 'center');
+
+            // Titik Node & Terminal A - B
+            drawNodeDot(rnX, topY, '#94a3b8');
+            drawNodeDot(rnX, botY, '#94a3b8');
+            drawTerminalPoint(termX, topY, 'A', '#f43f5e');
+            drawTerminalPoint(termX, botY, 'B', '#3b82f6');
+        }
+
+        /**
+         * HELPER SIMBOL STANDAR TEKNIK ELEKTRO & ANIMASI PARTIKEL
+         */
+        function drawLine(x1, y1, x2, y2) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        function animateParticles(x1, y1, x2, y2, amp, color) {
+            if (Math.abs(amp) < 0.01) return;
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const len = Math.hypot(dx, dy);
+            if (len < 6) return;
+
+            let dir = amp >= 0 ? 1 : -1;
+            if (!state.conventionalFlow) dir *= -1;
+
+            const speed = Math.min(170, Math.max(20, Math.abs(amp) * 28));
+            const spacing = 26;
+            const shift = ((animOffset * speed * dir) % spacing + spacing) % spacing;
+
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 6;
+
+            for (let d = shift; d < len; d += spacing) {
+                const t = d / len;
+                ctx.beginPath();
+                ctx.arc(x1 + dx * t, y1 + dy * t, 2.8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        function drawVoltageSymbol(x, y, val, label, labelSide) {
+            const r = 17;
+            ctx.save();
+            ctx.fillStyle = '#070b14';
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = 'bold 13px JetBrains Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText(val >= 0 ? '+' : '−', x, y - 4);
+            ctx.fillText(val >= 0 ? '−' : '+', x, y + 12);
+
+            // Label dengan background pill agar tidak bertabrakan dengan kawat
+            const offsetX = labelSide === 'left' ? x - r - 6 : x + r + 6;
+            drawTagBadge(offsetX, y, label, '#fcd34d', labelSide === 'left' ? 'right' : 'left');
+            ctx.restore();
+        }
+
+        function drawCurrentSymbol(x, y, val, label, labelSide) {
+            const r = 17;
+            ctx.save();
+            ctx.fillStyle = '#070b14';
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.strokeStyle = '#34d399';
+            ctx.lineWidth = 2;
+            const up = val >= 0;
+            const y1 = up ? y + 9 : y - 9;
+            const y2 = up ? y - 9 : y + 9;
+            drawLine(x, y1, x, y2);
+
+            ctx.beginPath();
+            if (up) {
+                ctx.moveTo(x - 4, y2 + 5); ctx.lineTo(x, y2); ctx.lineTo(x + 4, y2 + 5);
+            } else {
+                ctx.moveTo(x - 4, y2 - 5); ctx.lineTo(x, y2); ctx.lineTo(x + 4, y2 - 5);
+            }
+            ctx.stroke();
+
+            const offsetX = labelSide === 'left' ? x - r - 6 : x + r + 6;
+            drawTagBadge(offsetX, y, label, '#6ee7b7', labelSide === 'left' ? 'right' : 'left');
+            ctx.restore();
+        }
+
+        function drawResistorZigzagH(x, y, label, color) {
+            const halfW = 22;
+            const amp = 6;
+            ctx.save();
+            // Bersihkan kawat di belakang resistor
+            ctx.fillStyle = '#070b14';
+            ctx.fillRect(x - halfW, y - amp - 2, halfW * 2, (amp + 2) * 2);
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.1;
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(x - halfW, y);
+            const steps = 6;
+            const seg = (halfW * 2) / steps;
+            for (let i = 1; i < steps; i++) {
+                const px = x - halfW + seg * i;
+                const py = y + (i % 2 === 1 ? -amp : amp);
+                ctx.lineTo(px, py);
+            }
+            ctx.lineTo(x + halfW, y);
+            ctx.stroke();
+
+            drawTagBadge(x, y - 16, label, '#e2e8f0', 'center');
+            ctx.restore();
+        }
+
+        function drawResistorZigzagV(x, y, label, color, labelSide) {
+            const halfH = 22;
+            const amp = 6;
+            ctx.save();
+            ctx.fillStyle = '#070b14';
+            ctx.fillRect(x - amp - 2, y - halfH, (amp + 2) * 2, halfH * 2);
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.1;
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(x, y - halfH);
+            const steps = 6;
+            const seg = (halfH * 2) / steps;
+            for (let i = 1; i < steps; i++) {
+                const py = y - halfH + seg * i;
+                const px = x + (i % 2 === 1 ? -amp : amp);
+                ctx.lineTo(px, py);
+            }
+            ctx.lineTo(x, y + halfH);
+            ctx.stroke();
+
+            const offsetX = labelSide === 'left' ? x - amp - 6 : x + amp + 6;
+            drawTagBadge(offsetX, y, label, '#e2e8f0', labelSide === 'left' ? 'right' : 'left');
+            ctx.restore();
+        }
+
+        function drawShortedSymbol(x, y, label) {
+            ctx.save();
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 3.8;
+            drawLine(x, y - 18, x, y + 18);
+            drawTagBadge(x - 10, y, label, '#34d399', 'right');
+            ctx.restore();
+        }
+
+        function drawOpenedSymbol(x, y, label) {
+            ctx.save();
+            ctx.fillStyle = '#070b14';
+            ctx.fillRect(x - 8, y - 15, 16, 30);
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(x, y - 14, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(x, y + 14, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            drawTagBadge(x - 10, y, label, '#fda4af', 'right');
+            ctx.restore();
+        }
+
+        function drawMeterCircle(x, y, symbol, color) {
+            ctx.save();
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(x, y, 11, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = color;
+            ctx.font = 'bold 10px JetBrains Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText(symbol, x, y + 3.5);
+            ctx.restore();
+        }
+
+        function drawCurrentArrow(x1, y1, x2, y2, color) {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 2;
+            drawLine(x1, y1, x2, y2);
+            ctx.beginPath();
+            ctx.moveTo(x2 - 4, y2 - 6);
+            ctx.lineTo(x2, y2);
+            ctx.lineTo(x2 + 4, y2 - 6);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawNodeDot(x, y, color) {
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, 3.8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawTerminalPoint(x, y, name, color) {
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(name, x, name === 'A' ? y - 10 : y + 18);
+            ctx.restore();
+        }
+
+        /**
+         * RENDER LABEL DENGAN LATAR BELAKANG SEMI-TRANSPARAN AGAR SELALU JELAS DIBACA
+         */
+        function drawTagBadge(x, y, text, textColor, align) {
+            ctx.save();
+            ctx.font = 'bold 10.5px JetBrains Mono';
+            const metrics = ctx.measureText(text);
+            const padX = 5;
+            const boxW = metrics.width + padX * 2;
+            const boxH = 16;
+
+            let drawX = x;
+            if (align === 'center') drawX = x - boxW / 2;
+            else if (align === 'right') drawX = x - boxW;
+
+            ctx.fillStyle = 'rgba(7, 11, 20, 0.85)';
+            ctx.beginPath();
+            ctx.roundRect(drawX, y - boxH / 2, boxW, boxH, 4);
+            ctx.fill();
+
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'left';
+            ctx.fillText(text, drawX + padX, y + 3.5);
+            ctx.restore();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
